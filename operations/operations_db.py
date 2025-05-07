@@ -3,8 +3,9 @@
 from data.models import Pet, Task, User
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
+from typing import Optional
 
-# Operaciones para Pet (existentes)
+# Operaciones para Pet
 async def create_pet(session: AsyncSession, name: str, species: str, age: int) -> Pet:
     pet = Pet(name=name, species=species, age=age)
     session.add(pet)
@@ -81,6 +82,22 @@ async def create_user(session: AsyncSession, username: str, email: str, password
 async def get_user(session: AsyncSession, user_id: int) -> User:
     return await session.get(User, user_id)
 
+async def update_user_status(session: AsyncSession, user_id: int, status: str) -> User:
+    user = await session.get(User, user_id)
+    if user and status in ["active", "premium", "inactive"]:
+        user.status = status
+        await session.commit()
+        await session.refresh(user)
+    return user
+
+async def get_users_by_status(session: AsyncSession, status: str) -> list[User]:
+    result = await session.exec(select(User).where(User.status == status))
+    return result.all()
+
+async def get_all_users(session: AsyncSession) -> list[User]:
+    result = await session.exec(select(User))
+    return result.all()
+
 async def delete_user(session: AsyncSession, user_id: int) -> bool:
     user = await session.get(User, user_id)
     if user:
@@ -88,7 +105,3 @@ async def delete_user(session: AsyncSession, user_id: int) -> bool:
         await session.commit()
         return True
     return False
-
-async def get_all_users(session: AsyncSession) -> list[User]:
-    result = await session.exec(select(User))
-    return result.all()
